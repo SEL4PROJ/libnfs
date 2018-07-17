@@ -476,9 +476,12 @@ rpc_service(struct rpc_context *rpc, int revents)
 	if (rpc->is_connected == 0 && rpc->fd != -1 && (revents & POLLOUT)) {
 		int err = 0;
 		socklen_t err_size = sizeof(err);
-
+        /* HACK: picoTCP reports EINPROGRESS even after a socket is correctly
+         * connected, so we ignore EINPROGRESS error codes here.
+         * TODO: yielding until EINPROGRESS stops being reported would be a
+         * better solution */
 		if (getsockopt(rpc->fd, SOL_SOCKET, SO_ERROR,
-				(char *)&err, &err_size) != 0 || err != 0) {
+				(char *)&err, &err_size) != 0 || (err != 0 && err != EINPROGRESS)) {
 			if (err == 0) {
 				err = errno;
 			}
